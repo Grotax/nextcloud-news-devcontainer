@@ -52,6 +52,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends sudo \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$USERNAME" \
     && chmod 0440 /etc/sudoers.d/"$USERNAME"
 
+# Pre-create runtime directories and log files that bootstrap.sh and the web
+# server write to at startup, so the non-root vscode user (member of www-data)
+# can write to them without sudo.  bootstrap.sh still needs sudo for the steps
+# that touch /root, /etc/apache2, or system services (apache2/cron) – see the
+# notes in setup.sh.
+RUN mkdir -p /var/log/cron /var/www/html/data \
+    && touch /var/log/xdebug.log \
+    && chown -R www-data:www-data /var/log/cron /var/www/html/data /var/log/xdebug.log \
+    && chmod -R g+rwX /var/log/cron /var/www/html/data /var/log/xdebug.log
+
 # Source nvm in every login shell (/etc/profile.d/) and every interactive
 # non-login shell (/etc/bash.bashrc) so all users get nvm on PATH.
 RUN printf 'export NVM_DIR="%s"\n[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"\n[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"\n' \
