@@ -44,10 +44,32 @@ RUN mkdir -p "$NVM_DIR" \
 ARG USERNAME=vscode
 ARG USER_UID=1000
 ARG USER_GID=1000
+# Create the vscode user, handling the case where the base image already owns
+# the requested GID or UID (a common source of build failures that leaves the
+# published image without the user).  Strategy mirrors the approach used by
+# Microsoft's devcontainer base images:
+#   - If another group already owns GID $USER_GID, rename it to $USERNAME.
+#   - If another user  already owns UID $USER_UID, rename it to $USERNAME.
 RUN apt-get update && apt-get install -y --no-install-recommends sudo \
     && rm -rf /var/lib/apt/lists/* \
-    && groupadd --gid "$USER_GID" "$USERNAME" \
-    && useradd --uid "$USER_UID" --gid "$USER_GID" --shell /bin/bash --create-home "$USERNAME" \
+    && existing_group="$(getent group "$USER_GID" | cut -d: -f1)" \
+    && if [ -n "$existing_group" ]; then \
+           groupmod -n "$USERNAME" "$existing_group"; \
+       else \
+           groupadd --gid "$USER_GID" "$USERNAME"; \
+       fi \
+    && existing_user="$(getent passwd "$USER_UID" | cut -d: -f1)" \
+    && if [ -n "$existing_user" ]; then \
+           existing_home="$(getent passwd "$USER_UID" | cut -d: -f6)"; \
+           if [ -d "$existing_home" ]; then \
+               usermod -l "$USERNAME" -g "$USER_GID" -d /home/"$USERNAME" -m -s /bin/bash "$existing_user"; \
+           else \
+               usermod -l "$USERNAME" -g "$USER_GID" -d /home/"$USERNAME" -s /bin/bash "$existing_user" \
+               && mkdir -p /home/"$USERNAME" && chown "$USER_UID":"$USER_GID" /home/"$USERNAME"; \
+           fi; \
+       else \
+           useradd --uid "$USER_UID" --gid "$USER_GID" --shell /bin/bash --create-home "$USERNAME"; \
+       fi \
     && usermod -aG www-data,sudo "$USERNAME" \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$USERNAME" \
     && chmod 0440 /etc/sudoers.d/"$USERNAME"
