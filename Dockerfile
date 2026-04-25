@@ -15,12 +15,28 @@ RUN python3 -m venv /opt/zizmor-venv \
     && /opt/zizmor-venv/bin/pip install --quiet zizmor \
     && ln -s /opt/zizmor-venv/bin/zizmor /usr/local/bin/zizmor
 
-# Install Node.js 24.x from the NodeSource repository using the GPG-verified
-# apt repository method (avoids piping an untrusted script to bash).
-# nextcloud/news requires node ^24.0.0 (see package.json engines field).
-RUN curl -fsSL https://deb.nodesource.com/gpgkey/nodesource-repo.gpg.key \
-        | gpg --dearmor -o /usr/share/keyrings/nodesource.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/nodesource.gpg] https://deb.nodesource.com/node_24.x nodistro main" \
-        > /etc/apt/sources.list.d/nodesource.list \
-    && apt-get update && apt-get install -y --no-install-recommends nodejs \
-    && rm -rf /var/lib/apt/lists/*
+# Install nvm to a shared location so every user in the container can use it.
+# NVM_DIR is exported as a build-time and runtime environment variable so that
+# the nvm shell function and the node/npm binaries are on PATH for all users.
+ENV NVM_DIR=/usr/local/nvm
+RUN mkdir -p "$NVM_DIR" \
+    && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash \
+    && . "$NVM_DIR/nvm.sh" \
+    # Install the latest LTS release and make it the default.
+    && nvm install --lts \
+    && nvm alias default lts/* \
+    && nvm use default \
+    # Install bats (Bash Automated Testing System) used in nextcloud/news.
+    && npm install -g bats \
+    # Make the whole nvm tree writable by all users so that any non-root
+    # devcontainer user can run `npm install -g` without sudo.  This is an
+    # intentional, dev-only trade-off: devcontainers are single-tenant
+    # developer environments, not multi-tenant production systems.
+    && chmod -R a+rwX "$NVM_DIR"
+
+# Source nvm in every login shell (/etc/profile.d/) and every interactive
+# non-login shell (/etc/bash.bashrc) so all users get nvm on PATH.
+RUN printf 'export NVM_DIR="%s"\n[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"\n[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"\n' \
+        "$NVM_DIR" > /etc/profile.d/nvm.sh \
+    && chmod a+r /etc/profile.d/nvm.sh \
+    && cat /etc/profile.d/nvm.sh >> /etc/bash.bashrc
