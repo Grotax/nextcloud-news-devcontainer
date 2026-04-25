@@ -1,12 +1,11 @@
 FROM ghcr.io/juliusknorr/nextcloud-dev-php83:latest
 
-# Install Python 3 from the Debian repo.
-# This replaces the devcontainer 'python' feature which compiles Python from
-# source on every rebuild, making container startup significantly slower.
+# Install Python 3 and ssh
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
         python3-pip \
         python3-venv \
+        openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Install zizmor (GitHub Actions security scanner) into an isolated venv so
