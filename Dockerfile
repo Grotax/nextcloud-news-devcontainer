@@ -34,6 +34,24 @@ RUN mkdir -p "$NVM_DIR" \
     # developer environments, not multi-tenant production systems.
     && chmod -R a+rwX "$NVM_DIR"
 
+# Create the vscode user (UID/GID 1000) – the conventional non-root user for
+# VS Code devcontainers (mirrors the pattern used by microsoft/vscode-dev-containers).
+# * www-data  – allows the user to read/write files owned by the web server.
+# * sudo      – allows the user to run privileged commands inside the container.
+# The NOPASSWD:ALL sudoers rule is intentional and standard for devcontainers:
+# these are ephemeral, single-tenant developer environments, not production
+# systems.  Do NOT use this image outside of a local development context.
+ARG USERNAME=vscode
+ARG USER_UID=1000
+ARG USER_GID=1000
+RUN apt-get update && apt-get install -y --no-install-recommends sudo \
+    && rm -rf /var/lib/apt/lists/* \
+    && groupadd --gid "$USER_GID" "$USERNAME" \
+    && useradd --uid "$USER_UID" --gid "$USER_GID" --shell /bin/bash --create-home "$USERNAME" \
+    && usermod -aG www-data,sudo "$USERNAME" \
+    && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$USERNAME" \
+    && chmod 0440 /etc/sudoers.d/"$USERNAME"
+
 # Source nvm in every login shell (/etc/profile.d/) and every interactive
 # non-login shell (/etc/bash.bashrc) so all users get nvm on PATH.
 RUN printf 'export NVM_DIR="%s"\n[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"\n[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"\n' \
