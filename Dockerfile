@@ -51,13 +51,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends sudo \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$USERNAME" \
     && chmod 0440 /etc/sudoers.d/"$USERNAME"
 
-# Wrap the upstream bootstrap.sh so that the Nextcloud config directory is
-# re-owned to the vscode user after bootstrap runs.  Without this,
-# bootstrap.sh is called with sudo (i.e. as root) and leaves config/ owned by
-# root, which causes "Cannot write into config directory!" when phpunit runs as
-# the vscode user.
+# Wrap the upstream bootstrap.sh so that after Nextcloud is bootstrapped:
+# 1. The config directory is re-owned to the vscode user so phpunit can write
+#    to it (bootstrap runs as root via sudo, leaving config/ owned by root).
+# 2. The Nextcloud server profiler is disabled.  The dev base image enables it
+#    by default, which adds overhead and is not needed for development.
 RUN mv /usr/local/bin/bootstrap.sh /usr/local/bin/bootstrap-original.sh \
-    && printf '#!/bin/bash\nset -e\n/usr/local/bin/bootstrap-original.sh "$@"\nchown -R %s:%s /var/www/html/config\n' \
+    && printf '#!/bin/bash\nset -e\n/usr/local/bin/bootstrap-original.sh "$@"\nchown -R %s:%s /var/www/html/config\nif [ -f /var/www/html/occ ]; then php /var/www/html/occ config:system:set profiler --value=false --type=bool; fi\n' \
         "$USER_UID" "$USER_GID" > /usr/local/bin/bootstrap.sh \
     && chmod +x /usr/local/bin/bootstrap.sh
 
