@@ -51,6 +51,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends sudo \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$USERNAME" \
     && chmod 0440 /etc/sudoers.d/"$USERNAME"
 
+# Wrap the upstream bootstrap.sh so that the Nextcloud config directory is
+# re-owned to the vscode user after bootstrap runs.  Without this,
+# bootstrap.sh is called with sudo (i.e. as root) and leaves config/ owned by
+# root, which causes "Cannot write into config directory!" when phpunit runs as
+# the vscode user.
+RUN mv /usr/local/bin/bootstrap.sh /usr/local/bin/bootstrap-original.sh \
+    && printf '#!/bin/bash\nset -e\n/usr/local/bin/bootstrap-original.sh "$@"\nchown -R %s:%s /var/www/html/config\n' \
+        "$USER_UID" "$USER_GID" > /usr/local/bin/bootstrap.sh \
+    && chmod +x /usr/local/bin/bootstrap.sh
+
 # Source nvm in every login shell (/etc/profile.d/) and every interactive
 # non-login shell (/etc/bash.bashrc) so all users get nvm on PATH.
 RUN printf 'export NVM_DIR="%s"\n[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"\n[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"\n' \
