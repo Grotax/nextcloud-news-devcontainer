@@ -1,0 +1,11 @@
+{
+    // Example devcontainer that uses the dev image published on every push to main.
+    // Purpose: dogfood the image built by this repository.
+    "name": "nextcloud-news-devcontainer (dev)",
+    "image": "ghcr.io/grotax/nextcloud-news-devcontainer:dev",
+    "remoteUser": "vscode",
+    "features": {
+        "ghcr.io/devcontainers/features/github-cli": "latest"
+    },
+    "postCreateCommand": "bash .devcontainer/setup.sh"
+}
