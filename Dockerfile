@@ -14,6 +14,13 @@ RUN python3 -m venv /opt/zizmor-venv \
     && /opt/zizmor-venv/bin/pip install --quiet zizmor \
     && ln -s /opt/zizmor-venv/bin/zizmor /usr/local/bin/zizmor
 
+# Install HTTPie (used in bats integration tests) into an isolated venv.
+RUN python3 -m venv /opt/httpie-venv \
+    && /opt/httpie-venv/bin/pip install --quiet httpie \
+    && ln -s /opt/httpie-venv/bin/http /usr/local/bin/http \
+    && ln -s /opt/httpie-venv/bin/https /usr/local/bin/https \
+    && ln -s /opt/httpie-venv/bin/httpie /usr/local/bin/httpie
+
 # Install nvm to a shared location so every user in the container can use it.
 # NVM_DIR is exported as a build-time and runtime environment variable so that
 # the nvm shell function and the node/npm binaries are on PATH for all users.
