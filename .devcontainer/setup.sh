@@ -91,6 +91,13 @@ done
 echo ""
 echo "✔ Nextcloud installed"
 
+# Disable the profiler.  The dev base image enables it by default; it must be
+# turned off after the installer finishes writing config.php (any earlier
+# attempt races against the background installer and gets overwritten).
+echo "→ Disabling Nextcloud profiler…"
+sudo -u www-data php "$WEBROOT/occ" config:system:set profiler --value=false --type=bool
+echo "✔ Profiler disabled"
+
 # Fix ownership so the vscode developer can read/write these directories
 # without sudo.  Apache (www-data) retains access via group membership.
 echo "→ Fixing permissions for development…"

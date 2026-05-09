@@ -58,13 +58,17 @@ RUN apt-get update && apt-get install -y --no-install-recommends sudo \
     && echo "$USERNAME ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/"$USERNAME" \
     && chmod 0440 /etc/sudoers.d/"$USERNAME"
 
-# Wrap the upstream bootstrap.sh so that after Nextcloud is bootstrapped:
-# 1. The config directory is re-owned to the vscode user so phpunit can write
-#    to it (bootstrap runs as root via sudo, leaving config/ owned by root).
-# 2. The Nextcloud server profiler is disabled.  The dev base image enables it
-#    by default, which adds overhead and is not needed for development.
+# Wrap the upstream bootstrap.sh so that after Nextcloud is bootstrapped the
+# config directory is re-owned to the vscode user so phpunit can write to it
+# (bootstrap runs as root via sudo, leaving config/ owned by root).
+#
+# Note: the Nextcloud installer runs in the background after bootstrap returns,
+# so any `occ` calls made here would race against the installation and run
+# before config.php is written.  Post-install steps (e.g. disabling the
+# profiler) are therefore performed in .devcontainer/setup.sh after the
+# installer has confirmed it finished.
 RUN mv /usr/local/bin/bootstrap.sh /usr/local/bin/bootstrap-original.sh \
-    && printf '#!/bin/bash\nset -e\n/usr/local/bin/bootstrap-original.sh "$@"\nchown -R %s:%s /var/www/html/config\nif [ -f /var/www/html/occ ]; then php /var/www/html/occ config:system:set profiler --value=false --type=bool; fi\n' \
+    && printf '#!/bin/bash\nset -e\n/usr/local/bin/bootstrap-original.sh "$@"\nchown -R %s:%s /var/www/html/config\n' \
         "$USER_UID" "$USER_GID" > /usr/local/bin/bootstrap.sh \
     && chmod +x /usr/local/bin/bootstrap.sh
 
