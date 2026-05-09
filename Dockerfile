@@ -68,9 +68,20 @@ RUN mv /usr/local/bin/bootstrap.sh /usr/local/bin/bootstrap-original.sh \
         "$USER_UID" "$USER_GID" > /usr/local/bin/bootstrap.sh \
     && chmod +x /usr/local/bin/bootstrap.sh
 
+# Create the Xdebug log file and make it writable by the vscode user so that
+# VS Code's PHP Debug extension can write to it without needing sudo.
+RUN touch /var/log/xdebug.log \
+    && chown "$USER_UID":"$USER_GID" /var/log/xdebug.log \
+    && chmod 600 /var/log/xdebug.log
+
 # Source nvm in every login shell (/etc/profile.d/) and every interactive
 # non-login shell (/etc/bash.bashrc) so all users get nvm on PATH.
 RUN printf 'export NVM_DIR="%s"\n[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"\n[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"\n' \
         "$NVM_DIR" > /etc/profile.d/nvm.sh \
     && chmod a+r /etc/profile.d/nvm.sh \
     && cat /etc/profile.d/nvm.sh >> /etc/bash.bashrc
+
+# Remove any temporary files left in /tmp by the build steps above (e.g.
+# pip's sfi_file_sequence_* directories whose names contain a random suffix
+# and therefore cannot be targeted by a more specific glob).
+RUN find /tmp -mindepth 1 -delete
