@@ -83,7 +83,7 @@ until sudo -u www-data php "$WEBROOT/occ" status 2>/dev/null | grep -q "installe
     sleep 5
     ELAPSED=$((ELAPSED + 5))
     # Print a new "completed task" every 10 seconds to entertain the developer.
-    if [ "$(( ELAPSED % 10 ))" -eq "0" ]; then
+    if [ "$ELAPSED" -gt "0" ] && [ "$(( ELAPSED % 10 ))" -eq "0" ]; then
         printf "  ✔ %s\n" "${FUN_TASKS[$TASK_INDEX]}"
         TASK_INDEX=$(( (TASK_INDEX + 1) % ${#FUN_TASKS[@]} ))
     fi
@@ -105,7 +105,7 @@ done
 # in /tmp are owned by root.  Remove them so the vscode user can recreate them
 # with the correct owner on the first `./occ` run (otherwise FileSequence
 # finds a root-owned directory that exists but is not writable).
-sudo find /tmp -maxdepth 2 \( -name 'oc_*' -o -name 'nc_*' \) \
+sudo find /tmp -maxdepth 1 -type d -user root \( -name 'oc_*' -o -name 'nc_*' \) \
     -exec rm -rf {} + 2>/dev/null || true
 
 echo "✔ Nextcloud is ready at http://localhost (admin / admin)"
