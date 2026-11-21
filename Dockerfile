@@ -1,4 +1,4 @@
-FROM ghcr.io/juliusknorr/nextcloud-dev-php83:latest
+FROM ghcr.io/juliusknorr/nextcloud-dev-php84:latest
 
 # Install Python 3 and ssh
 RUN apt-get update && apt-get install -y --no-install-recommends \
