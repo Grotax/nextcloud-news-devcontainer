@@ -4,7 +4,7 @@ A pre-built devcontainer image for [Nextcloud News](https://github.com/nextcloud
 
 ## What's included
 
-The image extends [`ghcr.io/juliusknorr/nextcloud-dev-php83`](https://github.com/juliusknorr/nextcloud-dev) and adds:
+The image extends [`ghcr.io/juliusknorr/nextcloud-dev-php84`](https://github.com/juliusknorr/nextcloud-dev) and adds:
 
 | Tool | Source | Reason |
 |------|--------|--------|
@@ -26,7 +26,7 @@ Create or replace `.devcontainer/devcontainer.json` in the `nextcloud/news` repo
     "updateRemoteUserUID": true,
     "forwardPorts": [80],
     "containerEnv": {
-        "NEXTCLOUD_VERSION": "33",
+        "NEXTCLOUD_VERSION": "35",
         "NEXTCLOUD_AUTOINSTALL_APPS": "news",
         "XDEBUG_MODE": "debug"
     },
